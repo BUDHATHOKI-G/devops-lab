@@ -1,0 +1,97 @@
+---
+- hosts: local
+  become: true
+
+  vars:
+    project_name: "Ganesh DevOps Lab"
+    # Declaring the target home path as a variable makes it easy to reuse
+    notes_dir: "/home/kali/devops-lab/notes"
+
+  tasks:
+    - name: Create demo file
+      copy:
+        dest: /tmp/ansible-demo.txt
+        content: "Hello from Ansible"
+
+    - name: Create temporary project directory
+      file:
+        path: /tmp/devops-lab
+        state: directory
+
+    - name: Create project lab documentation files
+      copy:
+        dest: "/tmp/devops-lab/{{ item.filename }}"
+        content: "{{ item.text }}"
+      loop:
+        - { filename: 'notes.txt', text: "{{ project_name }}" }
+        - { filename: 'readme.txt', text: 'Learning Ansible' }
+        - { filename: 'config.txt', text: 'Environment: Dev' }
+
+    # 1. New Step: Create the permanent notes folder inside your home directory
+    - name: Create permanent notes directory in home folder
+      file:
+        path: "{{ notes_dir }}"
+        state: directory
+        owner: kali
+        group: kali
+        mode: '0755'
+
+    # 2. Updated Step: Save terraform.md to the new permanent path
+    - name: Create Terraform notes markdown file
+      copy:
+        dest: "{{ notes_dir }}/terraform.md"
+        content: |
+          # Terraform
+
+          ## Purpose
+          Create infrastructure using code.
+
+          ## Important Commands
+
+          terraform init
+          terraform plan
+          terraform apply
+          terraform destroy
+
+          ## Concepts
+
+          - Resource
+          - Variable
+          - Output
+          - State
+          - Reference
+        owner: kali
+        group: kali
+
+    # 3. Updated Step: Save ansible.md to the new permanent path
+    - name: Create Ansible notes markdown file
+      copy:
+        dest: "{{ notes_dir }}/ansible.md"
+        content: |
+          # Ansible
+
+          ## Purpose
+          Automate software provisioning, configuration management, and application deployment.
+
+          ## Important Commands
+
+          ansible all -m ping
+          ansible-playbook playbook.yml
+          ansible-galaxy install role_name
+          ansible-vault encrypt secret.yml
+
+          ## Concepts
+
+          - Playbook
+          - Inventory
+          - Task
+          - Module
+          - Variable
+        owner: kali
+        group: kali
+
+    - name: Install cowsay
+      apt:
+        name: cowsay
+        state: present
+        update_cache: yes

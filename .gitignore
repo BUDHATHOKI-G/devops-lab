@@ -1,0 +1,43 @@
+# =========================
+# Node.js
+# =========================
+**/node_modules/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Build output
+dist/
+build/
+
+# Helm generated files
+helm/**/output.yaml
+helm/**/*.tgz
+
+# Harbor installer files
+harbor/*.tgz
+harbor/harbor/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+
+# Kubernetes temp files
+*.bak
+
+# Jenkins
+.jenkins/
+
+# Misc
+*.swp

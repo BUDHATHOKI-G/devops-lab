@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: backend
+
+  labels:
+{{ include "devops-lab.labels" . | indent 4 }}
+
+spec:
+  replicas: {{ .Values.backend.replicas }}
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+    metadata:
+      labels:
+        app: backend
+{{ include "devops-lab.labels" . | indent 8 }}
+
+    spec:
+      containers:
+        - name: backend
+
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+
+          ports:
+            - containerPort: {{ .Values.backend.service.port }}
+
+          envFrom:
+            - configMapRef:
+                name: backend-config
+
+            - secretRef:
+                name: backend-secret
+
+          resources:
+{{ toYaml .Values.backend.resources | indent 12 }}
+
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: {{ .Values.backend.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: {{ .Values.backend.service.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
