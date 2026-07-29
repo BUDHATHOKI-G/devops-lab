@@ -2,26 +2,26 @@ pipeline {
 agent any
 
 
+environment {
+    HARBOR = 'harbor.local:8080'
+    PROJECT = 'devops-lab'
+    BACKEND_IMAGE = 'backend'
+    FRONTEND_IMAGE = 'frontend'
+    IMAGE_TAG = 'jenkins'
+}
+
 stages {
 
     stage('Checkout') {
         steps {
-            echo 'Checking out source code...'
             checkout scm
-        }
-    }
-
-    stage('Workspace Verification') {
-        steps {
-            sh 'pwd'
-            sh 'ls -R'
         }
     }
 
     stage('Build Backend Docker Image') {
         steps {
             dir('docker/lesson3/backend') {
-                sh 'docker build -t backend:jenkins .'
+                sh 'docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .'
             }
         }
     }
@@ -29,14 +29,44 @@ stages {
     stage('Build Frontend Docker Image') {
         steps {
             dir('docker/lesson3/frontend') {
-                sh 'docker build -t frontend:jenkins .'
+                sh 'docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .'
             }
         }
     }
 
-    stage('Verify Docker Images') {
+    stage('Login to Harbor') {
         steps {
-            sh 'docker images | grep -E "backend|frontend"'
+            withCredentials([usernamePassword(
+                credentialsId: 'admin',
+                usernameVariable: 'HARBOR_USER',
+                passwordVariable: 'HARBOR_PASS'
+            )]) {
+                sh '''
+                    echo $HARBOR_PASS | docker login ${HARBOR} \
+                    -u $HARBOR_USER --password-stdin
+                '''
+            }
+        }
+    }
+
+    stage('Tag Images') {
+        steps {
+            sh '''
+                docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} \
+                    ${HARBOR}/${PROJECT}/${BACKEND_IMAGE}:${IMAGE_TAG}
+
+                docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                    ${HARBOR}/${PROJECT}/${FRONTEND_IMAGE}:${IMAGE_TAG}
+            '''
+        }
+    }
+
+    stage('Push Images to Harbor') {
+        steps {
+            sh '''
+                docker push ${HARBOR}/${PROJECT}/${BACKEND_IMAGE}:${IMAGE_TAG}
+                docker push ${HARBOR}/${PROJECT}/${FRONTEND_IMAGE}:${IMAGE_TAG}
+            '''
         }
     }
 
@@ -44,7 +74,7 @@ stages {
 
 post {
     success {
-        echo 'Pipeline completed successfully!'
+        echo 'Images successfully pushed to Harbor!'
     }
 
     failure {
