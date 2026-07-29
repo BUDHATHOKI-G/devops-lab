@@ -3,7 +3,7 @@ agent any
 
 
 environment {
-    HARBOR = 'harbor.local:8080'
+    HARBOR = 'harbor.local'
     PROJECT = 'devops-lab'
     BACKEND_IMAGE = 'backend'
     FRONTEND_IMAGE = 'frontend'
