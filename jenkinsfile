@@ -1,11 +1,56 @@
 pipeline {
-    agent any
+agent any
 
-    stages {
-        stage('Checkout Verification') {
-            steps {
-                echo 'Repository successfully checked out from GitHub!'
+```
+stages {
+
+    stage('Checkout') {
+        steps {
+            echo 'Checking out source code...'
+            checkout scm
+        }
+    }
+
+    stage('Workspace Verification') {
+        steps {
+            sh 'pwd'
+            sh 'ls -R'
+        }
+    }
+
+    stage('Build Backend Docker Image') {
+        steps {
+            dir('docker/lesson3/backend') {
+                sh 'docker build -t backend:jenkins .'
             }
         }
     }
+
+    stage('Build Frontend Docker Image') {
+        steps {
+            dir('docker/lesson3/frontend') {
+                sh 'docker build -t frontend:jenkins .'
+            }
+        }
+    }
+
+    stage('Verify Docker Images') {
+        steps {
+            sh 'docker images | grep -E "backend|frontend"'
+        }
+    }
+
+}
+
+post {
+    success {
+        echo 'Pipeline completed successfully!'
+    }
+
+    failure {
+        echo 'Pipeline failed.'
+    }
+}
+```
+
 }
