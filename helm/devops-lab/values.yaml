@@ -30,9 +30,9 @@ backend:
       memory: 512Mi
 
   image:
-    repository: backend
-    tag: "v1"
-    pullPolicy: Never
+    repository: harbor.local/devops-lab/backend
+    tag: jenkins
+    pullPolicy: Always
 
   service:
     type: ClusterIP
@@ -46,9 +46,9 @@ frontend:
   replicas: 1
 
   image:
-    repository: frontend
-    tag: "v1"
-    pullPolicy: Never
+    repository: harbor.local/devops-lab/frontend
+    tag: jenkins
+    pullPolicy: Always
 
   service:
     type: ClusterIP
