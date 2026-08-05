@@ -1,86 +1,144 @@
 pipeline {
-agent any
+    agent any
 
-
-environment {
-    HARBOR = 'harbor.local'
-    PROJECT = 'devops-lab'
-    BACKEND_IMAGE = 'backend'
-    FRONTEND_IMAGE = 'frontend'
-    IMAGE_TAG = 'jenkins'
-}
-
-stages {
-
-    stage('Checkout') {
-        steps {
-            checkout scm
-        }
+    environment {
+        HARBOR = 'harbor.local'
+        PROJECT = 'devops-lab'
+        BACKEND_IMAGE = 'backend'
+        FRONTEND_IMAGE = 'frontend'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        GIT_REPO = 'https://github.com/BUDHATHOKI-G/devops-lab.git'
+        GIT_BRANCH = 'main'
     }
 
-    stage('Build Backend Docker Image') {
-        steps {
-            dir('docker/lesson3/backend') {
-                sh 'docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .'
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
             }
         }
-    }
 
-    stage('Build Frontend Docker Image') {
-        steps {
-            dir('docker/lesson3/frontend') {
-                sh 'docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .'
+        stage('Build Backend Docker Image') {
+            steps {
+                dir('docker/lesson3/backend') {
+                    sh 'docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} .'
+                }
             }
         }
-    }
 
-    stage('Login to Harbor') {
-        steps {
-            withCredentials([usernamePassword(
-                credentialsId: 'admin',
-                usernameVariable: 'HARBOR_USER',
-                passwordVariable: 'HARBOR_PASS'
-            )]) {
+        stage('Build Frontend Docker Image') {
+            steps {
+                dir('docker/lesson3/frontend') {
+                    sh 'docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} .'
+                }
+            }
+        }
+
+        stage('Login to Harbor') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'admin',
+                    usernameVariable: 'HARBOR_USER',
+                    passwordVariable: 'HARBOR_PASS'
+                )]) {
+                    sh '''
+                        echo $HARBOR_PASS | docker login ${HARBOR} \
+                        -u $HARBOR_USER --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Tag Images') {
+            steps {
                 sh '''
-                    echo $HARBOR_PASS | docker login ${HARBOR} \
-                    -u $HARBOR_USER --password-stdin
+                    docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} \
+                        ${HARBOR}/${PROJECT}/${BACKEND_IMAGE}:${IMAGE_TAG}
+
+                    docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                        ${HARBOR}/${PROJECT}/${FRONTEND_IMAGE}:${IMAGE_TAG}
                 '''
             }
         }
-    }
 
-    stage('Tag Images') {
-        steps {
-            sh '''
-                docker tag ${BACKEND_IMAGE}:${IMAGE_TAG} \
-                    ${HARBOR}/${PROJECT}/${BACKEND_IMAGE}:${IMAGE_TAG}
+        stage('Push Images to Harbor') {
+            steps {
+                sh '''
+                    docker push ${HARBOR}/${PROJECT}/${BACKEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${HARBOR}/${PROJECT}/${FRONTEND_IMAGE}:${IMAGE_TAG}
+                '''
+            }
+        }
 
-                docker tag ${FRONTEND_IMAGE}:${IMAGE_TAG} \
-                    ${HARBOR}/${PROJECT}/${FRONTEND_IMAGE}:${IMAGE_TAG}
-            '''
+        stage('Update Helm Values') {
+            steps {
+                sh '''
+                    python3 - "${IMAGE_TAG}" <<'PY'
+import sys
+from pathlib import Path
+
+tag = sys.argv[1]
+path = Path('helm/devops-lab/values.yaml')
+text = path.read_text()
+
+def replace_tag(block_name):
+    marker = f"{block_name}:"
+    start = text.find(marker)
+    if start == -1:
+        raise SystemExit(f"Missing block: {block_name}")
+    image_idx = text.find("image:", start)
+    tag_idx = text.find("tag:", image_idx)
+    line_end = text.find("\\n", tag_idx)
+    return text[:tag_idx] + f"tag: {tag}" + text[line_end:]
+
+updated = replace_tag("backend")
+text = updated
+updated = replace_tag("frontend")
+path.write_text(updated)
+PY
+
+                    echo "Updated values.yaml:"
+                    grep -A5 "backend:" helm/devops-lab/values.yaml
+                    grep -A5 "frontend:" helm/devops-lab/values.yaml
+                '''
+            }
+        }
+
+        stage('Commit and Push Helm Values') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-creds',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_PASS'
+                )]) {
+                    sh '''
+                        git config user.name "Jenkins"
+                        git config user.email "jenkins@local"
+
+                        git add helm/devops-lab/values.yaml
+
+                        git diff --cached --quiet || \
+                        git commit -m "Update image tags to ${IMAGE_TAG}"
+
+                        git remote set-url origin \
+                        https://${GIT_USER}:${GIT_PASS}@github.com/BUDHATHOKI-G/devops-lab.git
+
+                        git push origin ${GIT_BRANCH}
+                    '''
+                }
+            }
         }
     }
 
-    stage('Push Images to Harbor') {
-        steps {
-            sh '''
-                docker push ${HARBOR}/${PROJECT}/${BACKEND_IMAGE}:${IMAGE_TAG}
-                docker push ${HARBOR}/${PROJECT}/${FRONTEND_IMAGE}:${IMAGE_TAG}
-            '''
+    post {
+        success {
+            echo "GitOps pipeline completed successfully!"
+            echo "Argo CD will detect the Git change and deploy automatically."
+        }
+
+        failure {
+            echo "Pipeline failed."
         }
     }
-
-}
-
-post {
-    success {
-        echo 'Images successfully pushed to Harbor!'
-    }
-
-    failure {
-        echo 'Pipeline failed.'
-    }
-}
-
-
 }
