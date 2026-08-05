@@ -30,8 +30,12 @@ backend:
       memory: 512Mi
 
   image:
+
     repository: harbor.local/devops-lab/backend
     tag: 24
+
+    repository: host.docker.internal/devops-lab/backend
+    tag: jenkins
     pullPolicy: Always
 
   service:
@@ -46,8 +50,12 @@ frontend:
   replicas: 1
 
   image:
+
     repository: harbor.local/devops-lab/frontend
     tag: 24
+
+    repository: host.docker.internal/devops-lab/frontend
+    tag: jenkins
     pullPolicy: Always
 
   service:
