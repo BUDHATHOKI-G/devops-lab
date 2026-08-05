@@ -103,34 +103,35 @@ stages {
     }
 
     stage('Commit and Push Helm Values') {
-        steps {
-            withCredentials([usernamePassword(
-                credentialsId: 'github-creds',
-                usernameVariable: 'GIT_USER',
-                passwordVariable: 'GIT_PASS'
-            )]) {
-                sh '''
-                    git config user.name "Jenkins"
-                    git config user.email "jenkins@local"
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'github-creds',
+            usernameVariable: 'GIT_USER',
+            passwordVariable: 'GIT_PASS'
+        )]) {
+            sh '''
+                git config user.name "Jenkins"
+                git config user.email "jenkins@local"
 
-                    git add helm/devops-lab/values.yaml
+                # Create and switch to the target branch
+                git checkout -B ${GIT_BRANCH}
 
-                    if ! git diff --cached --quiet; then
-                        git commit -m "Update image tags to ${IMAGE_TAG}"
+                git add helm/devops-lab/values.yaml
 
-                        git remote set-url origin \
-                        https://${GIT_USER}:${GIT_PASS}@github.com/BUDHATHOKI-G/devops-lab.git
+                if ! git diff --cached --quiet; then
+                    git commit -m "Update image tags to ${IMAGE_TAG}"
 
-                        git push origin ${GIT_BRANCH}
-                    else
-                        echo "No changes to commit."
-                    fi
-                '''
-            }
+                    git remote set-url origin \
+                    https://${GIT_USER}:${GIT_PASS}@github.com/BUDHATHOKI-G/devops-lab.git
+
+                    git push origin ${GIT_BRANCH}
+                else
+                    echo "No changes to commit."
+                fi
+            '''
         }
     }
 }
-
 post {
     success {
         echo 'GitOps pipeline completed successfully!'
