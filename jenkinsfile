@@ -8,7 +8,6 @@ environment {
     BACKEND_IMAGE = 'backend'
     FRONTEND_IMAGE = 'frontend'
     IMAGE_TAG = "${BUILD_NUMBER}"
-    GIT_REPO = 'https://github.com/BUDHATHOKI-G/devops-lab.git'
     GIT_BRANCH = 'main'
 }
 
