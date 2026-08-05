@@ -1,7 +1,7 @@
 pipeline {
 agent any
 
-
+```
 environment {
     HARBOR = 'harbor.local'
     PROJECT = 'devops-lab'
@@ -75,42 +75,33 @@ stages {
     stage('Update Helm Values') {
         steps {
             sh '''
-                python3 - <<'PY'
+                awk -v tag="${IMAGE_TAG}" '
+                BEGIN { section="" }
 
+                /^backend:/  { section="backend" }
+                /^frontend:/ { section="frontend" }
 
-from pathlib import Path
-import re
-import os
+                section=="backend" && /^[[:space:]]+tag:/ {
+                    sub(/tag:.*/, "tag: " tag)
+                    section="backend_done"
+                }
 
-tag = os.environ['IMAGE_TAG']
-path = Path('helm/devops-lab/values.yaml')
-text = path.read_text()
+                section=="frontend" && /^[[:space:]]+tag:/ {
+                    sub(/tag:.*/, "tag: " tag)
+                    section="frontend_done"
+                }
 
-# Update backend image tag
+                { print }
+                ' helm/devops-lab/values.yaml > /tmp/values.yaml
 
-text = re.sub(
-r'(backend:\s*.*?image:\s*.*?tag:\s*)([^\n]+)',
-r'\g<1>' + tag,
-text,
-flags=re.S
-)
+                mv /tmp/values.yaml helm/devops-lab/values.yaml
 
-# Update frontend image tag
-
-text = re.sub(
-r'(frontend:\s*.*?image:\s*.*?tag:\s*)([^\n]+)',
-r'\g<1>' + tag,
-text,
-flags=re.S
-)
-
-path.write_text(text)
-print(path.read_text())
-PY
-'''
-}
-}
-
+                echo "Updated values.yaml:"
+                grep -A5 "backend:" helm/devops-lab/values.yaml
+                grep -A5 "frontend:" helm/devops-lab/values.yaml
+            '''
+        }
+    }
 
     stage('Commit and Push Helm Values') {
         steps {
@@ -151,6 +142,6 @@ post {
         echo 'Pipeline failed.'
     }
 }
-
+```
 
 }
