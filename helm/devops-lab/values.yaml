@@ -1,75 +1,67 @@
 namespace: devops-lab
 
 postgres:
-  replicas: 1
+replicas: 1
 
-  image:
-    repository: postgres
-    tag: "16"
+image:
+repository: postgres
+tag: "16"
 
-  auth:
-    username: admin
-    password: admin123
-    database: devopslab
+auth:
+username: admin
+password: admin123
+database: devopslab
 
-  storage: 2Gi
+storage: 2Gi
 
-  service:
-    type: ClusterIP
-    port: 5432
+service:
+type: ClusterIP
+port: 5432
 
 backend:
-  replicas: 1
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
+replicas: 1
 
-    limits:
-      cpu: 500m
-      memory: 512Mi
+resources:
+requests:
+cpu: 100m
+memory: 128Mi
+limits:
+cpu: 500m
+memory: 512Mi
 
-  image:
+image:
+repository: host.docker.internal/devops-lab/backend
+tag: 24
+pullPolicy: Always
 
-    repository: harbor.local/devops-lab/backend
-    tag: 24
+service:
+type: ClusterIP
+port: 5000
 
-    repository: host.docker.internal/devops-lab/backend
-    tag: jenkins
-    pullPolicy: Always
-
-  service:
-    type: ClusterIP
-    port: 5000
-
-  database:
-    host: postgres
-    port: "5432"
+database:
+host: postgres
+port: "5432"
 
 frontend:
-  replicas: 1
+replicas: 1
 
-  image:
+image:
+repository: host.docker.internal/devops-lab/frontend
+tag: 24
+pullPolicy: Always
 
-    repository: harbor.local/devops-lab/frontend
-    tag: 24
-
-    repository: host.docker.internal/devops-lab/frontend
-    tag: jenkins
-    pullPolicy: Always
-
-  service:
-    type: ClusterIP
-    port: 80
+service:
+type: ClusterIP
+port: 80
 
 ingress:
-  enabled: true
-  className: nginx
+enabled: true
+className: nginx
 
-  host: devops-lab.local
+host: devops-lab.local
 
-  frontend:
-    path: /
+frontend:
+path: /
 
-  backend:
-    path: /api
+backend:
+path: /api
