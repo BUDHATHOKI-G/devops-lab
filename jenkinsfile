@@ -1,7 +1,7 @@
 pipeline {
 agent any
 
-```
+
 environment {
     HARBOR = 'harbor.local'
     PROJECT = 'devops-lab'
@@ -141,6 +141,5 @@ post {
         echo 'Pipeline failed.'
     }
 }
-```
 
 }
