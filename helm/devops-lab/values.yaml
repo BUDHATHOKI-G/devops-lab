@@ -31,7 +31,7 @@ backend:
 
   image:
     repository: harbor.local/devops-lab/backend
-    tag: jenkins
+    tag: 24
     pullPolicy: Always
 
   service:
@@ -47,7 +47,7 @@ frontend:
 
   image:
     repository: harbor.local/devops-lab/frontend
-    tag: jenkins
+    tag: 24
     pullPolicy: Always
 
   service:
