@@ -1,7 +1,7 @@
 pipeline {
 agent any
 
-
+```
 environment {
     HARBOR = 'harbor.local'
     PROJECT = 'devops-lab'
@@ -96,42 +96,44 @@ stages {
                 mv /tmp/values.yaml helm/devops-lab/values.yaml
 
                 echo "Updated values.yaml:"
-                grep -A5 "backend:" helm/devops-lab/values.yaml
-                grep -A5 "frontend:" helm/devops-lab/values.yaml
+                grep -A8 "backend:" helm/devops-lab/values.yaml
+                grep -A8 "frontend:" helm/devops-lab/values.yaml
             '''
         }
     }
 
     stage('Commit and Push Helm Values') {
-    steps {
-        withCredentials([usernamePassword(
-            credentialsId: 'github-creds',
-            usernameVariable: 'GIT_USER',
-            passwordVariable: 'GIT_PASS'
-        )]) {
-            sh '''
-                git config user.name "Jenkins"
-                git config user.email "jenkins@local"
+        steps {
+            withCredentials([usernamePassword(
+                credentialsId: 'github-creds',
+                usernameVariable: 'GIT_USER',
+                passwordVariable: 'GIT_PASS'
+            )]) {
+                sh '''
+                    git config user.name "Jenkins"
+                    git config user.email "jenkins@local"
 
-                # Create and switch to the target branch
-                git checkout -B ${GIT_BRANCH}
+                    # Create a local main branch from the detached HEAD
+                    git checkout -B ${GIT_BRANCH}
 
-                git add helm/devops-lab/values.yaml
+                    git add helm/devops-lab/values.yaml
 
-                if ! git diff --cached --quiet; then
-                    git commit -m "Update image tags to ${IMAGE_TAG}"
+                    if ! git diff --cached --quiet; then
+                        git commit -m "Update image tags to ${IMAGE_TAG}"
 
-                    git remote set-url origin \
-                    https://${GIT_USER}:${GIT_PASS}@github.com/BUDHATHOKI-G/devops-lab.git
+                        git remote set-url origin \
+                        https://${GIT_USER}:${GIT_PASS}@github.com/BUDHATHOKI-G/devops-lab.git
 
-                    git push origin ${GIT_BRANCH}
-                else
-                    echo "No changes to commit."
-                fi
-            '''
+                        git push origin ${GIT_BRANCH}
+                    else
+                        echo "No changes to commit."
+                    fi
+                '''
+            }
         }
     }
 }
+
 post {
     success {
         echo 'GitOps pipeline completed successfully!'
@@ -142,5 +144,6 @@ post {
         echo 'Pipeline failed.'
     }
 }
+```
 
 }
