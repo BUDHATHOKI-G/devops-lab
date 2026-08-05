@@ -1,7 +1,7 @@
 pipeline {
 agent any
 
-```
+
 environment {
     HARBOR = 'harbor.local'
     PROJECT = 'devops-lab'
@@ -76,7 +76,7 @@ stages {
         steps {
             sh '''
                 python3 - <<'PY'
-```
+
 
 from pathlib import Path
 import re
@@ -111,7 +111,7 @@ PY
 }
 }
 
-```
+
     stage('Commit and Push Helm Values') {
         steps {
             withCredentials([usernamePassword(
@@ -151,6 +151,6 @@ post {
         echo 'Pipeline failed.'
     }
 }
-```
+
 
 }
